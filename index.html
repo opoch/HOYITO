@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Georeferencia 1.0</title>
+<link rel="stylesheet" type="text/css" href="css/jquery.mobile-1.4.5.min.css" />
+<link rel="stylesheet" type="text/css" href="css/jquery-ui.css" />
+<script src="cordova.js"></script>
+<script src="js/jquery.min.js" type="text/javascript"></script>
+<script src="js/jquery-ui.js" type="text/javascript"></script>
+<script src="js/jquery.mobile-1.4.5.min.js" type="text/javascript"></script>
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+<script type="text/javascript">
+$(document).on("pageinit","#Principal", function(e, data){
+ var opciones;
+ opciones={maximumAge:500000,enableHighAccuracy:true,timeout:5000};
+
+document.addEventListener("deviceready", onDeviceReady, false);
+    function onDeviceReady(){
+
+	$("#obtenercord").tap(function(){//Obtener coordenadas para el registro del servicio
+	  obtenerUbicacion();
+	});
+
+	$("#btnTomarFoto").tap(function (){//Capturar fotografia
+       alert("Listo");
+        navigator.device.capture.captureImage(function(mediaFiles){
+		    path = mediaFiles[0].fullPath;
+		    $('#regFoto').append('<br><img id="imagen" src="'+path+'" width="100%" />').attr('rel',path);
+	      },function(error){
+		        navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+	      },{limit:1});
+  });
+
+  $("#btnGuardar").tap(function (){
+	    if($("#imagen").attr("src")==""){
+		      alert("Antes de registrar el servicio debe tomar una fotografía del mismo ");
+	    }else{
+		      var nom=$("#Nombre").val();
+		      var lat=$("#obtLatitud").val();
+		      var lon=$("#obtLongitud").val();
+		      $.ajax({
+		          type:"POST",
+		          url:"guardar.php",
+		          data:"nombre="+nom+"&dir="+dir+"&Rfc="+rfc+"&tel="+tel+"&classif="+clasif+"&lat="+lat+"&long="+lon,
+		          success: guardandoServicios
+		      });
+
+		      function guardandoServicios(datos){
+		          alert("Respuesta: "+datos);
+		      }
+		      uploadPhoto($("#imagen").attr("src"));
+	    }
+  });
+}
+
+function uploadPhoto(foto) {
+	//alert("si entro: "+foto);
+	var options = new FileUploadOptions();
+	options.fileKey="file";
+	options.fileName=$("#Rfc").val();
+	options.mimeType="image/jpeg";
+        //alert("si entro a upload: "+options.fileName);
+	var params = {};
+	params.value1 = "test";
+	params.value2 = "param";
+	options.params = params;
+
+	var ft = new FileTransfer();
+	ft.upload(foto,"http://iscmoviles.890m.com/r/subirArchivo.php",function(r){
+		navigator.notification.confirm("El archivo: "+r.response,null, "Notificacion");
+	}, function(err){
+		navigator.notification.alert("Error: "+err.code+" detalle: "+err.response,null, "Error de Envío");
+	}, options);
+}
+
+/*************************/
+function obtenerUbicacion(){//Funcion que obtiene la Ubicación del dispositivo móvil
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(exito, falla, opciones);
+
+	  function exito(posic){
+	      var corUbic=new google.maps.LatLng(posic.coords.latitude, posic.coords.longitude);
+	      $("#obtLatitud").val(posic.coords.latitude);
+	      $("#obtLongitud").val(posic.coords.longitude);
+	      }
+
+
+	      function falla(error){
+	         alert("Error en el servicio Geolocalizador: "+error.code+" detalle: "+error.response);
+	      }
+	  }else{
+	      alert("Su dispositivo no soporta la geolocalización o no esta habilitada esta funcionalidad");
+	  }
+}
+
+});
+</script>
+<style >
+#map-canvas{
+  height:95%;
+  width:100%;
+  padding:0px;
+  position: absolute;
+  top:45px;
+  right:0px;
+  bottom:40px;
+  left:0px;
+}
+
+p{
+text-align:center;
+}
+</style>
+</head>
+<body>
+<div data-role="page" id="Principal">
+      <div data-role="header" data-position="fixed">
+	<h1>Catálogo de Servicios Libres</h1>
+      </div>
+      <div data-role="content" >
+	  <ul data-role="listview">
+	    <li data-role="list-divider" style="text-align:center;">Operaciones</li>
+	    <li><a href="#Registrar">Registrar servicios</a></li>
+	    <li><a href="#Consultar">Consultar servicios</a></li>
+	    <li><a href="#Actualizar">Actualizar servicios</a></li>
+	    <li><a href="#Eliminar">Eliminiar servicios</a></li>
+	  </ul>
+      </div>
+      <div data-role="footer" data-position="fixed" style="text-align:center;">
+	<div data-role="controlgroup" data-type="horizontal">
+	<a href="#Acercade" class="ui-btn ui-icon-home ui-btn-icon-left">Acerca de ..</a>
+	</div>
+      </div>
+</div>
+
+<div data-role="page" id="Registrar">
+      <div data-role="header" data-position="fixed">
+	<h1>Registro de Servicios</h1>
+      </div>
+      <div data-role="content" >
+    <input type="button" id="btnTomarFoto" value="Tomar Foto" >
+	  <div id="regFoto"></div>
+    <input type="button" id="obtenercord" value="Obtener coordenadas" />
+    <input type="text" id="obtLatitud" placeholder="Longitud" />
+	  <input type="text" id="obtLongitud" placeholder="Longitud" />
+	  <input type="button" id="btnGuardar" value="Guardar Servicio" />
+      </div>
+    <div data-role="footer" data-position="fixed" style="text-align:center;">
+	     <div data-role="controlgroup" data-type="horizontal">
+	        <a href="#Principal" class="ui-btn ui-icon-home ui-btn-icon-left">Regresar</a>
+	    </div>
+    </div>
+</div>
+</body>
+</html>
